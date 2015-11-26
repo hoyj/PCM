@@ -62,12 +62,11 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
         if searchText != nil {
             let request = ContactsRequest(search: searchText!)
             let newContacts = request.fetchContacts(db)
-            if newContacts.count > 0 {
+            if newContacts.count >= 0 {
                 self.contacts.removeAll()
                 self.contacts.insert(newContacts, atIndex: 0)
                 self.tableView.reloadData()
             }
-        }else{
         }
     }
 
@@ -170,6 +169,7 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
                     if let selectedContactCell = sender as? ContactTableViewCell {
                         let indexPath = tableView.indexPathForCell(selectedContactCell)!
                         let selectedContact = contacts[indexPath.section][indexPath.row]
+                        print("in DB: \(db[0])")
                         print("selected Contact at section \(indexPath.section), row \(indexPath.row): \(selectedContact)")
                         dcvc.contact = selectedContact
                 }
@@ -182,11 +182,19 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
     @IBAction func unwindToContactsTableViewController(unwindSegue: UIStoryboardSegue) {//important: this must be in destination to unwind
         if let dcvc = unwindSegue.sourceViewController as? DetailContactViewController {
             print("unwinding from dcvc: \(dcvc.newData)")
-            if dcvc.newData { //if true, it is returning a new data. We should add to the db
-                let newContact = dcvc.contact
-                print("new Contact data: \(newContact)")
+            //if true, it is returning a new data. We should add to the db
+            let newContact = dcvc.contact
+            print("new Contact data: \(newContact)")
+            if dcvc.newData {
                 db[0].append(newContact)//this should allocate to appropriate section
+            }else{
+                print("data was edited: update cell")
+                if let selectedIndexPath = tableView.indexPathForSelectedRow{
+                    print("selectedIndexPath.row: \(selectedIndexPath.row)")
+                    db[0][db[0].count - selectedIndexPath.row - 1] = newContact
+                }
             }
+            dcvc.newData = false
             refresh()
         }
         

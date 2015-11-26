@@ -17,8 +17,9 @@ class EditContactViewController: UIViewController, UITextFieldDelegate, UIImageP
     @IBOutlet weak var numberTextField: UITextField!
     @IBOutlet weak var companyTextField: UITextField!
     @IBOutlet weak var industryTextField: UITextField!
-    
     @IBOutlet weak var imageView: UIImageView!
+    
+    var editData: Contact?
     var newMedia: Bool?
     var newData: Bool = false
     
@@ -32,6 +33,15 @@ class EditContactViewController: UIViewController, UITextFieldDelegate, UIImageP
         let rightDoneBarButtonItem:UIBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Save, target: self, action: "showContactDetail:")
         self.navigationItem.setRightBarButtonItem(rightDoneBarButtonItem, animated: true)
         self.navigationController!.navigationBar.topItem!.title = ""
+        if editData != nil {//there is data coming from detail
+            nameTextField.text = editData?.name
+            titleTextField.text = editData?.title
+            emailTextField.text = editData?.email
+            numberTextField.text = editData?.number
+            companyTextField.text = editData?.company
+            industryTextField.text = editData?.industry
+            imageView.image = editData?.image
+        }
     }
     
     func showContactDetail(sender: UIBarButtonItem) {
@@ -139,14 +149,19 @@ class EditContactViewController: UIViewController, UITextFieldDelegate, UIImageP
         if let identifier = segue.identifier {
             switch identifier {
             case "showContactDetail":
-                var destination = segue.destinationViewController as UIViewController
+                /*var destination = segue.destinationViewController as UIViewController
                 if let navCon = destination as? UINavigationController {
                     destination = navCon.visibleViewController!
-                }
-                if let dcvc = destination as? DetailContactViewController {
+                }*/
+                if let dcvc = segue.destinationViewController as? DetailContactViewController {
                     print("preparing for detailcontactviewcontroller")
                     dcvc.contact = Contact(name: nameTextField.text!, title: titleTextField.text!, company: companyTextField.text!, industry: industryTextField.text!, memo: "", number: numberTextField.text!, email: emailTextField.text!, image: imageView.image)
-                    dcvc.newData = true
+                    if newData {
+                        dcvc.newData = false
+                    } else {
+                        dcvc.newData = true
+                    }
+                    dcvc.unwind = true
                     print("current contact status: \(dcvc.contact.description)")
                 }
             default: break
