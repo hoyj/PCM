@@ -9,8 +9,9 @@
 import UIKit
 
 class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
-
     
+    var userDefaults = NSUserDefaults.standardUserDefaults()
+
     var contacts = [[Contact]]()
     var db = [[Contact]]()
     
@@ -26,6 +27,7 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
     override func viewWillAppear(animated: Bool) {
         refresh()
         title="Contacts"
+        searchTextField?.text = searchText
     }
     
     override func viewDidLoad() {
@@ -36,10 +38,17 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
         self.navigationItem.setRightBarButtonItems([rightAddBarButtonItem, rightReminderBarButtonItem], animated: true)
         
         //sample contacts
-        db =
+        if let decoded = userDefaults.objectForKey("db"){
+            print("GOT DECODED")
+            let decodedContacts = NSKeyedUnarchiver.unarchiveObjectWithData(decoded as! NSData)
+            db = decodedContacts as! [[Contact]]
+        }else{
+            print("could not find file")
+            db =
             [[Contact(name: "Chad", title: "Junior", industry: "HOD", number: "615-275-9304"),
             Contact(name: "Jacob", title: "Senior", industry: "Computer Science", number: "615-275-9346"),
             Contact(name: "Andy", title: "Junior", industry: "Psychology", number: "615-275-9304")]]
+        }
         print("\(contacts)")
         refresh()
         
@@ -108,46 +117,15 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
 
         return cell
     }
-    
-
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
+    // MARK: - LOAD/SAVE
+    func saveContacts(){
+        let encodedData = NSKeyedArchiver.archivedDataWithRootObject(db)
+        userDefaults.setObject(encodedData, forKey: "db")
+        userDefaults.synchronize()
     }
-    */
-
-    /*
-    // Override to support editing the table view.
-    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
-        if editingStyle == .Delete {
-            // Delete the row from the data source
-            tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
-        } else if editingStyle == .Insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
-    }
-    */
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(tableView: UITableView, moveRowAtIndexPath fromIndexPath: NSIndexPath, toIndexPath: NSIndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(tableView: UITableView, canMoveRowAtIndexPath indexPath: NSIndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
     
     // MARK: - Navigation
-
+    
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         print("Main prepareforsegue")
@@ -196,6 +174,7 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
             }
             dcvc.newData = false
             refresh()
+            saveContacts()
         }
         
     }

@@ -18,6 +18,7 @@ public class ContactsRequest {
     
     func fetchContacts(contacts: [[Contact]]) -> [Contact] {
         var handler = [Contact]()
+        print("contacts: \(contacts)")
         if self.search == "" {
             for section in contacts {
                 for contact in section{
