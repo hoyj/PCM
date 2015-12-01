@@ -11,7 +11,6 @@ import UIKit
 class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
     
     var userDefaults = NSUserDefaults.standardUserDefaults()
-
     var contacts = [[Contact]]()
     var db = [[Contact]]()
     
@@ -33,10 +32,9 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Contacts"
-        let rightReminderBarButtonItem:UIBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Bookmarks, target: self, action: "showReminders:")
-        let rightAddBarButtonItem:UIBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Add, target: self, action: "addContact:")
-        self.navigationItem.setRightBarButtonItems([rightAddBarButtonItem, rightReminderBarButtonItem], animated: true)
-        
+        let rightAddBarButtonItem:UIBarButtonItem = UIBarButtonItem(title: "Add", style: UIBarButtonItemStyle.Plain, target: self, action: "addContact:")
+        let rightEditBarButtonItem = editButtonItem()
+        self.navigationItem.setRightBarButtonItems([rightEditBarButtonItem, rightAddBarButtonItem], animated: true)
         //sample contacts
         if let decoded = userDefaults.objectForKey("db"){
             print("GOT DECODED")
@@ -46,7 +44,7 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
             print("could not find file")
             db =
             [[Contact(name: "Chad", title: "Junior", industry: "HOD", number: "615-275-9304"),
-            Contact(name: "Jacob", title: "Senior", industry: "Computer Science", number: "615-275-9346"),
+                Contact(name: "Jacob", title: "Senior", email: "young.j.ho@vanderbilt.edu", industry: "Computer Science", number: "615-275-9346"),
             Contact(name: "Andy", title: "Junior", industry: "Psychology", number: "615-275-9304")]]
         }
         print("\(contacts)")
@@ -57,10 +55,6 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
 
         // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
         // self.navigationItem.rightBarButtonItem = self.editButtonItem()
-    }
-    
-    func showReminders(sender: UIBarButtonItem) {
-        performSegueWithIdentifier("showReminders", sender: self)
     }
     
     func addContact(sender: UIBarButtonItem) {
@@ -105,13 +99,23 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
         return contacts[section].count
     }
 
+    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+        print("indexPath section: \(indexPath.section), row: \(indexPath.row)")
+        if editingStyle == .Delete {
+            // Delete the row from the data source
+            contacts[0].removeAtIndex(indexPath.row)
+            db[0].removeAtIndex(db[0].count - indexPath.row - 1)
+            tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+            saveContacts()
+        }
+    }
+    
     private struct Storyboard {
         static let CellReuseIdentifier = "Contact"
     }
     
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier(Storyboard.CellReuseIdentifier, forIndexPath: indexPath) as! ContactTableViewCell
-
         // Configure the cell...
         cell.contact = contacts[indexPath.section][indexPath.row]
 
@@ -119,9 +123,13 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
     }
     // MARK: - LOAD/SAVE
     func saveContacts(){
-        let encodedData = NSKeyedArchiver.archivedDataWithRootObject(db)
-        userDefaults.setObject(encodedData, forKey: "db")
-        userDefaults.synchronize()
+        dispatch_async(dispatch_get_main_queue()) {
+            print("started save contacts")
+            let encodedData = NSKeyedArchiver.archivedDataWithRootObject(self.db)
+            self.userDefaults.setObject(encodedData, forKey: "db")
+            self.userDefaults.synchronize()
+            print("done with  save contacts")
+        }
     }
     
     // MARK: - Navigation
@@ -132,11 +140,6 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
         print("\(segue.identifier)")
         if let identifier = segue.identifier {
             switch identifier {
-                case "showReminders":
-                    if let rtvc = segue.destinationViewController as? RemindersTableViewController {
-                        print("preparing for reminderstableviewcontroller")
-                        rtvc.searchText = self.searchText
-                    }
                 case "addContact":
                     if let _ = segue.destinationViewController as? EditContactViewController {
                         print("preparing for editcontactviewcontroller")
@@ -172,8 +175,8 @@ class ContactsTableViewController: UITableViewController, UITextFieldDelegate {
                     db[0][db[0].count - selectedIndexPath.row - 1] = newContact
                 }
             }
+            print("done with unwind")
             dcvc.newData = false
-            refresh()
             saveContacts()
         }
         

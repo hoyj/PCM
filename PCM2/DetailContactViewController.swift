@@ -7,8 +7,9 @@
 //
 
 import UIKit
+import MessageUI
 
-class DetailContactViewController: UIViewController {
+class DetailContactViewController: UIViewController, UITextViewDelegate, MFMailComposeViewControllerDelegate {
 
     
     @IBOutlet weak var titleLabel: UILabel!
@@ -18,7 +19,6 @@ class DetailContactViewController: UIViewController {
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var numberLabel: UILabel!
     @IBOutlet weak var emailLabel: UILabel!
-    @IBOutlet weak var memoView: UITextView! //DO NOT ADD press recognizer for memoview
     
     var contact = Contact()
     var newData: Bool = false
@@ -34,9 +34,8 @@ class DetailContactViewController: UIViewController {
         //unwind
         let backButton: UIBarButtonItem = UIBarButtonItem(title: "List", style: UIBarButtonItemStyle.Plain, target: self, action: "unwindToContactsTableViewController:")
         self.navigationItem.setLeftBarButtonItem(backButton, animated: true)
+        //self.view.userInteractionEnabled = true
         //gesture Recognizer
-        //let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: "tapped:")
-        //self.titleLabel.addGestureRecognizer(tapGestureRecognizer)
         let namePressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "pressed:")
         self.nameLabel.addGestureRecognizer(namePressGestureRecognizer)
         let titlePressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "pressed:")
@@ -51,15 +50,35 @@ class DetailContactViewController: UIViewController {
         self.numberLabel.addGestureRecognizer(numberPressGestureRecognizer)
         let emailPressGestureRecognizer = UILongPressGestureRecognizer(target: self, action: "pressed:")
         self.emailLabel.addGestureRecognizer(emailPressGestureRecognizer)
+        let emailTapGestureRecognizer = UITapGestureRecognizer(target: self, action: "email:")
+        self.emailLabel.addGestureRecognizer(emailTapGestureRecognizer)
+        let numberTapGestureRecognizer = UITapGestureRecognizer(target: self, action: "call:")
+        self.numberLabel.addGestureRecognizer(numberTapGestureRecognizer)
         // Do any additional setup after loading the view.
     }
     
-    @IBAction func tapped(sender: UITapGestureRecognizer)
+    // MARK: - Gesture
+    @IBAction func call(sender: UITapGestureRecognizer)
     {
-        print("tap noticed, going to edit screen")
-        if sender.state == UIGestureRecognizerState.Began
+        if sender.state == UIGestureRecognizerState.Ended
         {
-            self.performSegueWithIdentifier("edit", sender: self)
+            print("calling~")
+            if let url = NSURL(string: "tel://\(self.numberLabel.text)") {
+                UIApplication.sharedApplication().openURL(url)
+            }
+        }
+    }
+    
+    @IBAction func email(sender: UITapGestureRecognizer)
+    {
+        let picker = MFMailComposeViewController()
+        print("tap noticed, going to email screen")
+        if sender.state == UIGestureRecognizerState.Ended
+        {
+            picker.mailComposeDelegate = self
+            picker.setSubject("")
+            picker.setMessageBody("", isHTML: true)
+            presentViewController(picker, animated: true, completion: nil)
         }
     }
     
@@ -72,6 +91,10 @@ class DetailContactViewController: UIViewController {
         }
     }
     
+    func mailComposeController(controller: MFMailComposeViewController, didFinishWithResult result: MFMailComposeResult, error: NSError?) {
+        dismissViewControllerAnimated(true, completion: nil)
+    }
+    
     func setUI(){
         title = "\(contact.name.uppercaseString)"
         companyLabel.text = contact.company
@@ -81,9 +104,31 @@ class DetailContactViewController: UIViewController {
         imageView.image = contact.image
         numberLabel.text = contact.number
         emailLabel.text = contact.email
+        memoView.text = contact.memo
+        memoView.delegate = self
         memoView!.layer.borderWidth = 1
         memoView!.layer.borderColor = UIColor.grayColor().CGColor
     }
+    // MARK: - TextField Deletegate
+    @IBOutlet weak var memoView: UITextView! //DO NOT ADD press recognizer for memoview
+    {
+        didSet {
+            print("memoview is set!")
+            memoView.text = self.contact.memo
+        }
+    }
+    
+    func textFieldShouldReturn(textField: UITextView) -> Bool {
+        /*print("came here tho")
+        textField.resignFirstResponder()
+        if textField == memoView{
+            print("did come here for sure")
+            self.contact.memo = textField.text!
+        }*/
+        return true
+    }
+    
+    // MARK: - Navigation
     override func canPerformUnwindSegueAction(action: Selector, fromViewController: UIViewController, withSender sender: AnyObject) -> Bool {
         print("can perform unwindsegue?: \(unwind)")
         if unwind {
@@ -94,14 +139,9 @@ class DetailContactViewController: UIViewController {
     }
     func unwindToContactsTableViewController(sender: UIBarButtonItem){
         print("pressed back from detailcontactviewcontroller")
+        self.contact.memo = self.memoView.text!
         self.performSegueWithIdentifier("back", sender: self)
     }
-    
-    
-    
-
-    
-    // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
@@ -118,6 +158,14 @@ class DetailContactViewController: UIViewController {
                         ecvc.newData = true
                     }
                     unwind = false
+                }
+            case "showReminders":
+                if let rtvc = segue.destinationViewController as? RemindersTableViewController {
+                    rtvc.contact = contact
+                }
+            case "zoom":
+                if let ivc = segue.destinationViewController as? imageViewController {
+                    ivc.imageView.image = self.imageView.image
                 }
             default: break
             }

@@ -7,77 +7,102 @@
 //
 
 import UIKit
+import EventKit
 
-class RemindersTableViewController: UITableViewController, UITextFieldDelegate {
-
-    var reminders = [[Contact]]()
+class RemindersTableViewController: UITableViewController {
     
-    var searchText: String? = "" {
-        didSet {
-            searchTextField?.text = searchText
-            reminders.removeAll()
-            tableView.reloadData()
-            refresh()
-        }
+    var userDefaults = NSUserDefaults.standardUserDefaults()
+    let eventStore = EKEventStore()
+    var contact = Contact()
+    var reminders = [EKReminder]()
+    
+    override func viewWillAppear(animated: Bool) {
+        reminders.removeAll()
+        refresh()
+        title="Reminders"
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Reminders"
-        //tableView.estimatedRowHeight = tableView.rowHeight//for automatic cell height adjustment
-        //tableView.rowHeight = UITableViewAutomaticDimension
-        
-        refresh()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem()
+        tableView.estimatedRowHeight = tableView.rowHeight
+        tableView.rowHeight = UITableViewAutomaticDimension
+        self.navigationController!.navigationBar.topItem!.title = ""
+        let rightAddBarButtonItem:UIBarButtonItem = UIBarButtonItem(title: "Add", style: UIBarButtonItemStyle.Plain, target: self,action: "addReminder:")
+        let rightRemoveBarButtonItem = editButtonItem()
+        self.navigationItem.setRightBarButtonItems([rightRemoveBarButtonItem, rightAddBarButtonItem], animated: true)
     }
 
+    func addReminder(sender: UIBarButtonItem)
+    {
+        performSegueWithIdentifier("addReminder", sender: self)
+    }
+    
     func refresh() {
-        if searchText != nil {
-            let request = ContactsRequest(search: searchText!)
-            let newContacts = request.fetchContacts(reminders)
-            if newContacts.count > 0 {
-                self.reminders.insert(newContacts, atIndex: 0)
+        let calendars = eventStore.calendarsForEntityType(EKEntityType.Reminder)
+        let predicate = eventStore.predicateForIncompleteRemindersWithDueDateStarting(nil, ending: nil, calendars: calendars)
+        eventStore.fetchRemindersMatchingPredicate(predicate) { result in
+            //print("result: \(result!.count)")
+            for reminder in result! {
+                print("reminder.title: \(reminder.title)")
+                if reminder.title.rangeOfString(self.contact.name) != nil {
+                    self.reminders.append(reminder)
+                }
+            }
+            print("REMINDERS: \(self.reminders.count)")
+            dispatch_async(dispatch_get_main_queue()) {
                 self.tableView.reloadData()
             }
-        }
-    }
-
-    
-    
-    @IBOutlet weak var searchTextField: UITextField!{
-        didSet {
-            searchTextField.delegate = self
-            searchTextField.text = searchText
         }
     }
     
     // MARK: - Table view data source
 
     override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return reminders.count
+        return 1
     }
 
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return reminders[section].count
+        return reminders.count
     }
 
     private struct Storyboard {
         static let CellReuseIdentifier = "Reminder"
     }
+    
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier(Storyboard.CellReuseIdentifier, forIndexPath: indexPath) as! ReminderTableViewCell
         
         // Configure the cell...
-        cell.contact = reminders[indexPath.section][indexPath.row]
-        
+        cell.contact = contact
+        cell.reminder = reminders[indexPath.row]
         return cell
+    }
+    
+    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+        print("indexPath section: \(indexPath.section), row: \(indexPath.row)")
+        if editingStyle == .Delete {
+            let calendars = eventStore.calendarsForEntityType(EKEntityType.Reminder)
+            let predicate = eventStore.predicateForIncompleteRemindersWithDueDateStarting(nil, ending: nil, calendars: calendars)
+            eventStore.fetchRemindersMatchingPredicate(predicate) { result in
+                for reminder in result! {
+                    if reminder == self.reminders[indexPath.row] {
+                        do {
+                            try self.eventStore.removeReminder(reminder, commit: true)
+                            print("successfully removed completed reminder")
+                        } catch let error as NSError {
+                            print("failed to remove completed reminder \(error.localizedDescription)")
+                        }
+                    }
+                }
+                print("REMINDERS: \(self.reminders.count)")
+                dispatch_async(dispatch_get_main_queue()) {
+                    self.reminders.removeAtIndex(indexPath.row)
+                    self.contact.reminder = self.reminders
+                    tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: .Fade)
+                }
+            }
+        }
     }
     
     /*
@@ -125,14 +150,19 @@ class RemindersTableViewController: UITableViewController, UITextFieldDelegate {
     }
     */
 
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
+        if let identifier = segue.identifier {
+            switch identifier {
+            case "addReminder":
+                if let srvc = segue.destinationViewController as? SetReminderViewController {
+                    print("preparing for setremindersviewcontroller")
+                    srvc.contact = contact
+                }
+            default: break
+            }
+        }
     }
-    */
 
 }

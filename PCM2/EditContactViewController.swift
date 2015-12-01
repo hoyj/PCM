@@ -30,9 +30,10 @@ class EditContactViewController: UIViewController, UITextFieldDelegate, UIImageP
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "NewContact"
-        let rightDoneBarButtonItem:UIBarButtonItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Save, target: self, action: "showContactDetail:")
+        let rightDoneBarButtonItem:UIBarButtonItem = UIBarButtonItem(title: "Save", style: UIBarButtonItemStyle.Plain, target: self, action: "showContactDetail:")//UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Save, target: self, action: "showContactDetail:")
         self.navigationItem.setRightBarButtonItem(rightDoneBarButtonItem, animated: true)
         self.navigationController!.navigationBar.topItem!.title = ""
+        numberTextField.keyboardType = UIKeyboardType.DecimalPad
         if editData != nil {//there is data coming from detail
             nameTextField.text = editData?.name
             titleTextField.text = editData?.title

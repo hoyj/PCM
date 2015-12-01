@@ -7,29 +7,31 @@
 //
 
 import UIKit
+import EventKit
 
 class ReminderTableViewCell: UITableViewCell {
     
-    var contact: Contact? {
-        didSet {
+    var dateFormatter = NSDateFormatter()
+    
+    var contact: Contact?
+    
+    var reminder: EKReminder? {
+        didSet{
             updateUI()
         }
     }
-    @IBOutlet weak var reminderNameLabel: UILabel!
-    @IBOutlet weak var reminderTitleLabel: UILabel!
     @IBOutlet weak var reminderDateLabel: UILabel!
+    @IBOutlet weak var reminderTitleLabel: UILabel!
 
     func updateUI() {
-        reminderNameLabel?.attributedText = nil
-        reminderTitleLabel?.text = nil
-        reminderDateLabel?.text = nil
-        
-        if let contact = self.contact
-        {
-            if let reminder = contact.reminder{
-                reminderNameLabel?.text = contact.name
-                reminderTitleLabel?.text = contact.title
-                reminderDateLabel?.text = "Reminder exists"
+        dateFormatter.dateFormat = "MM/dd/yy"
+        if reminder != nil{
+            print("contact? :\(contact)")
+            let str = reminder!.title
+            let ind = str.startIndex.advancedBy(contact!.name.characters.count + 1)
+            reminderTitleLabel.text = str.substringFromIndex(ind)
+            if let alarm = reminder!.alarms {
+                reminderDateLabel?.text = dateFormatter.stringFromDate(alarm[0].absoluteDate!)
             }
         }
     }

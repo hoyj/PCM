@@ -8,9 +8,12 @@
 
 import Foundation
 import UIKit
-
+import EventKit
 public class Contact: NSObject, NSCoding
 {
+    static let DocumentsDirectory = NSFileManager().URLsForDirectory(.DocumentDirectory, inDomains: .UserDomainMask).first!
+    static let ArchiveURL = DocumentsDirectory.URLByAppendingPathComponent("contacts")
+    
     public var name: String
     public var title: String
     public var company: String
@@ -18,10 +21,10 @@ public class Contact: NSObject, NSCoding
     public var memo: String
     public var number: String
     public var email: String
-    public var reminder: [NSDate]?
+    public var reminder: [EKReminder]?
     public var image: UIImage?
     
-    init (name: String = "", title: String = "", company: String = "", industry: String = "", memo: String = "", number: String = "", email: String = "", image:UIImage? = UIImage(named: "defaultPhoto")!)
+    init (name: String = "", title: String = "", company: String = "", industry: String = "", memo: String = "", number: String = "", email: String = "", reminder: [EKReminder]? = [EKReminder](), image:UIImage? = UIImage(named: "defaultPhoto")!)
     {
         self.name = name
         self.title = title
@@ -30,6 +33,7 @@ public class Contact: NSObject, NSCoding
         self.memo = memo
         self.number = number
         self.email = email
+        self.reminder = reminder
         self.image = image
     }
     
@@ -41,9 +45,9 @@ public class Contact: NSObject, NSCoding
         let memo = aDecoder.decodeObjectForKey("memo") as! String
         let number = aDecoder.decodeObjectForKey("number") as! String
         let email = aDecoder.decodeObjectForKey("email") as! String
-        let reminder = aDecoder.decodeObjectForKey("reminder") as? [NSDate]
+        let reminder = aDecoder.decodeObjectForKey("reminder") as? [EKReminder]
         let image = aDecoder.decodeObjectForKey("image") as! UIImage
-        self.init(name:name, title:title, company:company, industry:industry, memo:memo, number:number, email:email, image:image)
+        self.init(name:name, title:title, company:company, industry:industry, memo:memo, number:number, email:email,reminder:reminder, image:image)
     }
     
     public func encodeWithCoder(aCoder: NSCoder) {
@@ -61,7 +65,7 @@ public class Contact: NSObject, NSCoding
     
     override public var description: String
     {
-        return "\(self.name), \(self.title), \(self.company), \(self.industry), \(self.memo), \(self.number), \(self.email)"
+        return "\(self.name), \(self.title), \(self.company), \(self.industry), \(self.memo), \(self.number), \(self.email), \(self.reminder)"
     }
     
 }
